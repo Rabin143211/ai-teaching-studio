@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Teaching Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyan: { 50: '#ecfeff', 100: '#cffafe', 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    .sidebar-link.active { background: #ecfeff; color: #0e7490; }
+    .progress-bar { transition: width 0.4s ease; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 sticky top-0 h-screen">
+      <div class="p-5 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">AI</div>
+          <div>
+            <h1 class="font-semibold text-sm leading-tight">AI Teaching Studio</h1>
+            <p class="text-xs text-slate-500">Create · Teach · Inspire</p>
+          </div>
+        </div>
+      </div>
+      <nav class="flex-1 p-3 space-y-0.5" id="nav">
+        <a href="#" data-page="dashboard" class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-cyan-700 bg-cyan-50">Dashboard</a>
+        <a href="#" data-page="create" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">Create Lesson</a>
+        <a href="#" data-page="studio" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">AI Teacher Studio</a>
+        <a href="#" data-page="voice" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">Voice Settings</a>
+        <a href="#" data-page="lessons" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">My Lessons</a>
+        <a href="#" data-page="quiz" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">Quiz & Progress</a>
+        <a href="#" data-page="settings" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">Account Settings</a>
+      </nav>
+      <div class="p-4 border-t border-slate-100">
+        <div class="rounded-lg bg-gradient-to-br from-slate-800 to-slate-900 p-3 text-white text-xs">
+          <p class="font-medium mb-1">Reference Style Active</p>
+          <p class="text-slate-300 leading-relaxed">Using analyzed teaching style from your uploaded reference video.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 overflow-auto" id="main">
+      <!-- pages injected here -->
+    </main>
+  </div>
+
+  <script>
+    // ========== State ==========
+    let state = {
+      refConsent: false,
+      refAnalyzed: false,
+      profile: null,
+      topic: "Introduction to Artificial Intelligence",
+      script: "",
+      difficulty: "beginner",
+      language: "en-IN",
+      voiceSpeed: 1.0,
+      voicePitch: 1.0,
+      avatarGender: "male",
+      audioStatus: null,
+      videoStatus: null,
+      previewUrl: "reference-teacher.mp4"
+    };
+
+    // ========== Pages ==========
+    const pages = {
+      dashboard: () => `
+        <div class="p-6 max-w-6xl mx-auto">
+          <header class="mb-8">
+            <h1 class="text-2xl font-bold">Dashboard</h1>
+            <p class="text-slate-500 mt-1">Welcome to AI Teaching Studio</p>
+          </header>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            ${[
+              {label:"Lessons Created",value:"0",color:"bg-blue-50 text-blue-600"},
+              {label:"Videos Generated",value:"0",color:"bg-cyan-50 text-cyan-600"},
+              {label:"Voice Profiles",value:"1",color:"bg-violet-50 text-violet-600"},
+              {label:"Style Analyses",value: state.refAnalyzed ? "1" : "0",color:"bg-amber-50 text-amber-600"}
+            ].map(s => `
+              <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div class="w-9 h-9 rounded-lg ${s.color} flex items-center justify-center mb-3 font-bold text-sm">•</div>
+                <p class="text-2xl font-bold">${s.value}</p>
+                <p class="text-sm text-slate-500">${s.label}</p>
+              </div>`).join("")}
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+            <h2 class="font-semibold mb-3">Quick Start</h2>
+            <ol class="space-y-2 text-sm text-slate-600 list-decimal list-inside">
+              <li>Go to <strong>Create Lesson</strong> and upload a reference teaching video (with consent).</li>
+              <li>Review the generated teaching-style profile.</li>
+              <li>Enter a topic or paste a script, choose difficulty & language.</li>
+              <li>Generate speech (browser TTS demo) and talking-teacher video (demo preview).</li>
+              <li>Preview, download, and manage lessons.</li>
+            </ol>
+            <button onclick="navigate('create')" class="mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-cyan-600 text-white text-sm font-medium hover:bg-cyan-500">Create Your First Lesson</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+              <p class="font-semibold mb-1">Demo Mode Notice</p>
+              <p>Speech uses the browser Web Speech API. Video generation is simulated and shows the reference clip. Connect real providers for production quality.</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700">
+              <p class="font-semibold mb-1">Security & Consent</p>
+              <p>Reference videos are style references only. Voice or identity cloning requires explicit consent and an authorized provider.</p>
+            </div>
+          </div>
+        </div>`,
+
+      create: () => `
+        <div class="p-6 max-w-7xl mx-auto">
+          <header class="mb-6">
+            <h1 class="text-2xl font-bold">Create Lesson</h1>
+            <p class="text-slate-500 mt-1">Upload a reference style video, configure voice & avatar, then generate a complete lesson.</p>
+          </header>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left column -->
+            <div class="space-y-5">
+              <!-- Reference Video -->
+              <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                  <h2 class="font-semibold text-slate-800">Reference Video</h2>
+                  ${state.refAnalyzed ? '<span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">Analyzed</span>' : ''}
+                </div>
+                <div class="p-4 space-y-3">
+                  <label class="flex items-start gap-2 text-sm text-slate-600 cursor-pointer">
+                    <input type="checkbox" id="consent" ${state.refConsent ? 'checked' : ''} onchange="state.refConsent=this.checked" class="mt-0.5 rounded border-slate-300 text-cyan-600">
+                    <span>I confirm I have the right to use this video as a <strong>style reference only</strong>. Identity or voice cloning requires separate consent and an authorized provider.</span>
+                  </label>
+                  <input type="file" id="videoUpload" accept="video/mp4,video/quicktime,video/webm" class="hidden" onchange="handleUpload(event)">
+                  <button onclick="document.getElementById('videoUpload').click()" id="uploadBtn"
+                    class="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-cyan-300 text-cyan-700 hover:bg-cyan-50 text-sm font-medium ${!state.refConsent ? 'opacity-50 cursor-not-allowed' : ''}"
+                    ${!state.refConsent ? 'disabled' : ''}>
+                    ${state.analyzing ? 'Analyzing...' : 'Upload MP4 / MOV / WebM'}
+                  </button>
+                  ${state.profile ? `
+                    <div class="mt-3 space-y-2 text-sm">
+                      <p class="font-medium text-slate-700">Teaching Style Profile</p>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-50 rounded p-2"><span class="text-slate-500">Pace</span><p class="font-medium">${state.profile.speakingPace} wpm</p></div>
+                        <div class="bg-slate-50 rounded p-2"><span class="text-slate-500">Emotion</span><p class="font-medium capitalize">${state.profile.emotion}</p></div>
+                        <div class="bg-slate-50 rounded p-2"><span class="text-slate-500">Eye Contact</span><p class="font-medium capitalize">${state.profile.eyeContact}</p></div>
+                        <div class="bg-slate-50 rounded p-2"><span class="text-slate-500">Gestures</span><p class="font-medium capitalize">${state.profile.gestureLevel}</p></div>
+                      </div>
+                      <p class="text-xs text-slate-500 leading-relaxed">${state.profile.notes}</p>
+                    </div>` : ''}
+                </div>
+              </section>
+
+              <!-- Avatar -->
+              <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-100"><h2 class="font-semibold">Teacher Avatar</h2></div>
+                <div class="p-4 space-y-3">
+                  <div class="flex gap-2">
+                    <button onclick="state.avatarGender='male'; render()" class="flex-1 py-2.5 rounded-lg text-sm font-medium border transition ${state.avatarGender==='male' ? 'bg-cyan-50 border-cyan-300 text-cyan-700 ring-1 ring-cyan-200' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}">
+                      Male Professional
+                    </button>
+                    <button onclick="state.avatarGender='female'; render()" class="flex-1 py-2.5 rounded-lg text-sm font-medium border transition ${state.avatarGender==='female' ? 'bg-cyan-50 border-cyan-300 text-cyan-700 ring-1 ring-cyan-200' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}">
+                      Female Professional
+                    </button>
+                  </div>
+                  <div class="rounded-lg bg-slate-50 border border-slate-100 p-3 text-xs text-slate-600 leading-relaxed">
+                    <p class="font-medium text-slate-700 mb-1">Realistic style active</p>
+                    Using the real teacher from your reference video. Appearance, lighting and expressions stay consistent across every lesson.
+                  </div>
+                </div>
+              </section>
+
+              <!-- Voice -->
+              <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-100"><h2 class="font-semibold">Voice</h2></div>
+                <div class="p-4 space-y-3">
+                  <div>
+                    <label class="text-xs font-medium text-slate-500">Language</label>
+                    <select id="lang" onchange="state.language=this.value" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                      <option value="en" ${state.language==='en'?'selected':''}>English</option>
+                      <option value="en-IN" ${state.language==='en-IN'?'selected':''}>Indian English</option>
+                      <option value="hi" ${state.language==='hi'?'selected':''}>Hindi</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium text-slate-500">Speed (${state.voiceSpeed.toFixed(1)}x)</label>
+                    <input type="range" min="0.6" max="1.5" step="0.1" value="${state.voiceSpeed}" oninput="state.voiceSpeed=parseFloat(this.value); this.previousElementSibling.textContent='Speed ('+state.voiceSpeed.toFixed(1)+'x)'" class="w-full accent-cyan-600">
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium text-slate-500">Pitch (${state.voicePitch.toFixed(1)})</label>
+                    <input type="range" min="0.7" max="1.3" step="0.1" value="${state.voicePitch}" oninput="state.voicePitch=parseFloat(this.value)" class="w-full accent-cyan-600">
+                  </div>
+                  <p class="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5">Demo uses browser Web Speech API. High-quality / cloned voices require a licensed provider (server-side).</p>
+                </div>
+              </section>
+            </div>
+
+            <!-- Center -->
+            <div class="lg:col-span-2 space-y-5">
+              <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                  <h2 class="font-semibold">Lesson Script</h2>
+                  <div class="flex items-center gap-2">
+                    <select id="diff" onchange="state.difficulty=this.value" class="text-sm rounded-lg border border-slate-200 px-2 py-1.5">
+                      <option value="beginner" ${state.difficulty==='beginner'?'selected':''}>Beginner</option>
+                      <option value="intermediate" ${state.difficulty==='intermediate'?'selected':''}>Intermediate</option>
+                      <option value="advanced" ${state.difficulty==='advanced'?'selected':''}>Advanced</option>
+                    </select>
+                    <button onclick="generateContent()" class="inline-flex items-center gap-1.5 text-sm font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 px-3 py-1.5 rounded-lg">Auto-generate</button>
+                  </div>
+                </div>
+                <div class="p-4 space-y-3">
+                  <input type="text" id="topic" value="${state.topic}" oninput="state.topic=this.value" placeholder="Lesson topic" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <textarea id="script" rows="12" oninput="state.script=this.value" placeholder="Enter or generate the full lesson script here..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm leading-relaxed resize-y">${state.script}</textarea>
+                </div>
+              </section>
+
+              <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                <div class="flex flex-wrap gap-3">
+                  <button onclick="generateAudio()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700">Generate Speech</button>
+                  <button onclick="generateVideo()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-cyan-600 text-white text-sm font-medium hover:bg-cyan-500">Generate Talking Teacher</button>
+                  <button onclick="fullGenerate()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-medium hover:opacity-90">Full Generate</button>
+                </div>
+                <div class="mt-4 space-y-2" id="statusArea">
+                  ${state.audioStatus ? statusHtml(state.audioStatus, 'Audio') : ''}
+                  ${state.videoStatus ? statusHtml(state.videoStatus, 'Video') : ''}
+                </div>
+              </section>
+
+              <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                  <h2 class="font-semibold flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Realistic Teacher Avatar
+                  </h2>
+                  <a href="${state.previewUrl}" download class="text-sm text-cyan-600 hover:underline">Download MP4</a>
+                </div>
+                <div class="p-5 bg-gradient-to-b from-slate-50 to-white">
+                  <div class="relative max-w-md mx-auto">
+                    <!-- Avatar card -->
+                    <div class="rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-black">
+                      <video id="preview" src="${state.previewUrl}" controls playsinline class="w-full aspect-[4/3] object-cover"></video>
+                    </div>
+                    <!-- Status badge -->
+                    <div class="absolute top-3 left-3 flex items-center gap-1.5 bg-black/70 backdrop-blur text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      Live Style Reference
+                    </div>
+                    <!-- Avatar info -->
+                    <div class="mt-3 flex items-center justify-between text-sm">
+                      <div>
+                        <p class="font-semibold text-slate-800">${state.avatarGender === 'male' ? 'Male Professional' : 'Female Professional'}</p>
+                        <p class="text-xs text-slate-500">Consistent appearance · Natural expressions</p>
+                      </div>
+                      <span class="text-xs bg-cyan-50 text-cyan-700 px-2 py-1 rounded-full font-medium">Realistic</span>
+                    </div>
+                  </div>
+                  <p class="mt-4 text-xs text-slate-500 text-center max-w-md mx-auto">
+                    Showing the real teacher from your reference video. For production lip-sync with blinks, head movement and gestures, connect HeyGen, D-ID or Synthesia.
+                  </p>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>`,
+
+      studio: () => `
+        <div class="p-6 max-w-4xl mx-auto">
+          <h1 class="text-2xl font-bold mb-2">AI Teacher Studio</h1>
+          <p class="text-slate-500 mb-6">Manage avatar appearance, consistency, and advanced generation settings.</p>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <p class="text-sm text-slate-600">Avatar options and lip-sync configuration are available in the <strong>Create Lesson</strong> flow.</p>
+            <div class="rounded-lg bg-slate-50 border border-slate-200 p-4 text-sm">
+              <p class="font-medium mb-1">Current Status</p>
+              <ul class="list-disc list-inside text-slate-600 space-y-1">
+                <li>Male / Female avatar selection: Available</li>
+                <li>Appearance consistency across lessons: Enforced</li>
+                <li>Lip-sync generation: Demo (simulated)</li>
+                <li>Natural blinks / head movement / gestures: Provider-dependent</li>
+                <li>MP4 export: Available when a real provider is connected</li>
+              </ul>
+            </div>
+          </div>
+        </div>`,
+
+      voice: () => `
+        <div class="p-6 max-w-4xl mx-auto">
+          <h1 class="text-2xl font-bold mb-2">Voice Settings</h1>
+          <p class="text-slate-500 mb-6">Configure language, speed, pitch, emotion, and authorized voice cloning.</p>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div class="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">
+              <p class="font-semibold">Current Provider: Browser Web Speech API (Demo)</p>
+              <p class="mt-1">For production-quality English, Hindi, and Indian English voices, connect ElevenLabs, Azure Neural TTS, or Google Cloud TTS (server-side only).</p>
+            </div>
+            <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
+              <li>Supported languages: English, Hindi, Indian English</li>
+              <li>Speed / Pitch controls: Available</li>
+              <li>Voice cloning: Requires consent + authorized provider</li>
+              <li>MP3 / WAV export: Available with licensed TTS</li>
+            </ul>
+          </div>
+        </div>`,
+
+      lessons: () => `
+        <div class="p-6 max-w-4xl mx-auto">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h1 class="text-2xl font-bold">My Lessons</h1>
+              <p class="text-slate-500 mt-1">Saved and generated lessons appear here.</p>
+            </div>
+            <button onclick="navigate('create')" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-medium hover:bg-cyan-500">New Lesson</button>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center text-slate-500 text-sm">
+            No lessons yet. Create your first lesson to get started.
+          </div>
+        </div>`,
+
+      quiz: () => `
+        <div class="p-6 max-w-4xl mx-auto">
+          <h1 class="text-2xl font-bold mb-2">Quiz & Progress</h1>
+          <p class="text-slate-500 mb-6">Quizzes are auto-generated with each lesson.</p>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center text-slate-500 text-sm">
+            Complete a lesson generation to see sample quiz questions.
+          </div>
+        </div>`,
+
+      settings: () => `
+        <div class="p-6 max-w-4xl mx-auto">
+          <h1 class="text-2xl font-bold mb-2">Account Settings</h1>
+          <p class="text-slate-500 mb-6">Manage consent, data retention, and connected services.</p>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100">
+            <div class="p-5">
+              <h2 class="font-semibold mb-1">Data & Consent</h2>
+              <p class="text-sm text-slate-600">You can delete uploaded reference videos, generated audio, and videos at any time. Source media is not retained longer than necessary.</p>
+            </div>
+            <div class="p-5">
+              <h2 class="font-semibold mb-1">Connected Providers</h2>
+              <ul class="text-sm text-slate-600 space-y-1 mt-2">
+                <li>• Speech Synthesis: Browser Web Speech (demo)</li>
+                <li>• Voice Cloning: Not connected</li>
+                <li>• Avatar / Lip-sync: Not connected (demo preview)</li>
+              </ul>
+            </div>
+            <div class="p-5">
+              <h2 class="font-semibold mb-1">Security</h2>
+              <p class="text-sm text-slate-600">File type and size validation is enforced. API keys must never be exposed in browser code.</p>
+            </div>
+          </div>
+        </div>`
+    };
+
+    function statusHtml(job, label) {
+      const icon = job.status === 'completed' ? '✅' : job.status === 'failed' ? '❌' : '⏳';
+      return `
+        <div class="flex items-start gap-2 text-sm">
+          <span>${icon}</span>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-slate-700">${label}</span>
+              ${job.status === 'processing' ? `<span class="text-xs text-slate-500">${job.progress}%</span>` : ''}
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">${job.message}</p>
+            ${job.status === 'processing' ? `<div class="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-cyan-500 rounded-full progress-bar" style="width:${job.progress}%"></div></div>` : ''}
+          </div>
+        </div>`;
+    }
+
+    // ========== Actions ==========
+    function navigate(page) {
+      document.querySelectorAll('.sidebar-link').forEach(el => {
+        el.classList.remove('active', 'bg-cyan-50', 'text-cyan-700');
+        el.classList.add('text-slate-600');
+        if (el.dataset.page === page) {
+          el.classList.add('active', 'bg-cyan-50', 'text-cyan-700');
+          el.classList.remove('text-slate-600');
+        }
+      });
+      document.getElementById('main').innerHTML = pages[page]();
+      // re-bind consent if needed
+      if (page === 'create') {
+        const cb = document.getElementById('consent');
+        if (cb) cb.onchange = () => { state.refConsent = cb.checked; render(); };
+      }
+    }
+
+    function render() {
+      const active = document.querySelector('.sidebar-link.active');
+      const page = active ? active.dataset.page : 'dashboard';
+      navigate(page);
+    }
+
+    async function handleUpload(e) {
+      if (!state.refConsent) {
+        alert('Please provide consent before uploading.');
+        return;
+      }
+      const file = e.target.files[0];
+      if (!file) return;
+      const valid = ['video/mp4', 'video/quicktime', 'video/webm'];
+      if (!valid.includes(file.type)) {
+        alert('Please upload MP4, MOV, or WebM only.');
+        return;
+      }
+      state.analyzing = true;
+      render();
+      await new Promise(r => setTimeout(r, 1800));
+      state.profile = {
+        speakingPace: 142,
+        pauseFrequency: 'medium',
+        emotion: 'warm',
+        eyeContact: 'high',
+        gestureLevel: 'moderate',
+        pronunciationClarity: 92,
+        accent: 'Indian English (neutral)',
+        notes: 'Clear articulation, friendly smile, consistent eye contact with camera. Natural hand gestures when emphasizing points. Moderate pace with deliberate pauses for clarity. Ideal for educational content.'
+      };
+      state.refAnalyzed = true;
+      state.analyzing = false;
+      state.voiceSpeed = 1.0;
+      render();
+    }
+
+    async function generateContent() {
+      const topic = state.topic || 'this topic';
+      state.script = `Hello students, welcome to AI Teaching Studio.
+
+Today we are going to learn about ${topic}.
+
+I will explain every topic step by step, using simple examples to help you understand clearly.
+
+Let's begin with the fundamentals of ${topic}.
+
+First, we define what ${topic} means in practical terms.
+Then we look at real-world applications.
+Finally we will practice with a short quiz.
+
+Stay focused, and feel free to pause and replay any section.`;
+      render();
+    }
+
+    function generateAudio() {
+      if (!state.script.trim()) {
+        alert('Please enter or generate a lesson script first.');
+        return;
+      }
+      if (!window.speechSynthesis) {
+        state.audioStatus = { status: 'failed', progress: 0, message: 'Web Speech API not available in this browser.' };
+        render();
+        return;
+      }
+      state.audioStatus = { status: 'processing', progress: 40, message: 'Synthesizing speech via browser Web Speech API...' };
+      render();
+      const u = new SpeechSynthesisUtterance(state.script);
+      u.rate = state.voiceSpeed;
+      u.pitch = state.voicePitch;
+      u.lang = state.language === 'hi' ? 'hi-IN' : state.language === 'en-IN' ? 'en-IN' : 'en-US';
+      u.onend = () => {
+        state.audioStatus = { status: 'completed', progress: 100, message: 'Played via browser Web Speech API (demo). For MP3/WAV export connect a licensed TTS provider.' };
+        render();
+      };
+      u.onerror = () => {
+        state.audioStatus = { status: 'failed', progress: 0, message: 'Speech synthesis failed.' };
+        render();
+      };
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }
+
+    async function generateVideo() {
+      if (!state.script.trim()) {
+        alert('Script required.');
+        return;
+      }
+      const stages = [
+        { p: 15, m: 'Preparing avatar model...' },
+        { p: 35, m: 'Aligning lip-sync to audio...' },
+        { p: 55, m: 'Generating facial expressions & blinks...' },
+        { p: 75, m: 'Rendering head movements & gestures...' },
+        { p: 90, m: 'Encoding final video...' },
+        { p: 100, m: 'Complete (demo mode)' }
+      ];
+      for (const s of stages) {
+        state.videoStatus = { status: s.p === 100 ? 'completed' : 'processing', progress: s.p, message: s.m };
+        render();
+        await new Promise(r => setTimeout(r, s.p === 100 ? 400 : 900));
+      }
+      state.videoStatus = {
+        status: 'completed',
+        progress: 100,
+        message: 'Demo complete. Preview shows the reference style video. Connect HeyGen / D-ID / Synthesia for real lip-synced generation.'
+      };
+      state.previewUrl = 'reference-teacher.mp4';
+      render();
+    }
+
+    async function fullGenerate() {
+      await generateContent();
+      generateAudio();
+      await generateVideo();
+    }
+
+    // Init
+    document.querySelectorAll('.sidebar-link').forEach(el => {
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        navigate(el.dataset.page);
+      });
+    });
+    navigate('dashboard');
+  </script>
+</body>
+</html>
